@@ -1,7 +1,9 @@
+//Lab 1a - Changes made for my own branch
+//This branch is used to practice Git and Github collaboration
 #include <Arduino.h>
 
-// Student name: YOUR NAME
-// Student number: YOUR STUDENT NUMBER
+// Student name: kieran doherty
+// Student number: 26058421
 
 int ledPin = 23;
 int buttonPin = 22;
