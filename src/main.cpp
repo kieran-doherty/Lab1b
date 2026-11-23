@@ -1,48 +1,71 @@
+// Juraj Bazelides | 25076876
+
+// adds Arduino functions
 #include <Arduino.h>
 
-// Student name: YOUR NAME
-// Student number: YOUR STUDENT NUMBER
+// defines on which pins the LED and button are connected
+#define LED_PIN 23
+#define BUTTON_PIN 22
 
-int ledPin = 23;
-int buttonPin = 22;
+// how long to wait for the button to stop bouncing (ms)
+#define DEBOUNCE_MS 50
 
-int ledState = HIGH;
-int buttonState = LOW;
-int lastButtonReading = LOW;
+// blink speeds in ms between LED on/off flips, 0 = LED off
+// each button press moves to the next speed: slow -> medium -> fast -> off -> slow ...
+const unsigned long BLINK_SPEEDS[] = {1000, 500, 150, 0};
+const int NUM_SPEEDS = sizeof(BLINK_SPEEDS) / sizeof(BLINK_SPEEDS[0]);
 
-unsigned long lastTime = 0;
-int debounceDelay = 50;
+// which speed is active, starts at slow
+int speedIndex = 0;
 
+// current LED state, starts on
+bool ledState = true;
+
+// time (ms since start) of the last LED flip
+unsigned long lastToggle = 0;
+
+// runs once at start
 void setup()
 {
-    pinMode(ledPin, OUTPUT);
-    pinMode(buttonPin, INPUT_PULLDOWN);
-
-    digitalWrite(ledPin, ledState);
+  // defines that LED is an output and button is an input (HIGH when released, LOW when pressed), sets the LED to the current state
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  digitalWrite(LED_PIN, ledState);
 }
 
+// runs loop forever
 void loop()
 {
-    int reading = digitalRead(buttonPin);
-
-    if (reading != lastButtonReading)
+  // check if button is pressed
+  if (digitalRead(BUTTON_PIN) == LOW)
+  {
+    // wait out button bounce
+    delay(DEBOUNCE_MS);
+    // still pressed, so it's an actual press
+    if (digitalRead(BUTTON_PIN) == LOW)
     {
-        lastTime = millis();
+      // move to the next blink speed, wrapping back to the first
+      speedIndex = (speedIndex + 1) % NUM_SPEEDS;
+      // restart the blink with the LED on (or keep it off in the "off" setting)
+      ledState = BLINK_SPEEDS[speedIndex] != 0;
+      digitalWrite(LED_PIN, ledState);
+      lastToggle = millis();
+      // wait until the button is released
+      while (digitalRead(BUTTON_PIN) == LOW)
+      {
+        delay(10);
+      }
+      // wait out bounce on release
+      delay(DEBOUNCE_MS);
     }
+  }
 
-    if ((millis() - lastTime) > debounceDelay)
-    {
-        if (reading != buttonState)
-        {
-            buttonState = reading;
-
-            if (buttonState == HIGH)
-            {
-                ledState = !ledState;
-                digitalWrite(ledPin, ledState);
-            }
-        }
-    }
-
-    lastButtonReading = reading;
+  // blink: flip the LED once enough time has passed for the current speed
+  unsigned long interval = BLINK_SPEEDS[speedIndex];
+  if (interval != 0 && millis() - lastToggle >= interval)
+  {
+    ledState = !ledState;
+    digitalWrite(LED_PIN, ledState);
+    lastToggle = millis();
+  }
 }
